@@ -4,6 +4,7 @@
 - use `git show` to inspect a commit
 - identify the unidriectional relationship of commits
 - leverage git revisions to target commits
+- use `git bisect` to find a bug
 - describe the three trees of git
 - use `git reset` to reset git history
 - use `git reflog` to access reference logs to undo terrible things
@@ -196,7 +197,7 @@ $ git reset --hard HEAD~1
 
 All three tree in this case would "reset" to the state of `HEAD~1` and that would be come the new `HEAD` This means we would lose all traces of the original `HEAD` commit and essentially not be able to access them ever again...or not!? 
 
-#### git reflog
+## git reflog
 
 With all these dangerous things we can do in git, surely there must be some way for us to backtrack on disastrous commands. There is! Enter the reference log.
 
