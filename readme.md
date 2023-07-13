@@ -11,7 +11,7 @@
 - identify `git merge` creates a merge commit
 - use `git rebase` to rewrite history onto a new branch's tip
 - identify pros and cons of rebase vs merge
-- prioritizing git workflows on teams
+- prioritizing communication and git workflows on teams
 - other useful git things given time
 
 ## Framing
@@ -41,7 +41,7 @@ do
     echo "This is commit number $i" >> hello.txt
     
     # Commit the changes using git
-    git add commits.txt
+    git add hello.txt
     git commit -m "Commit number $i"
 done
 ```
@@ -93,6 +93,50 @@ Git provides various relative references to navigate the commit history.
 - `~` or `^`: Specifies parent commits.
 
 there are some other ones but you'll mostly just see `~` unless your working with the reference log or time in which case you may use `@{}`
+
+## Git Bisect
+
+There's been lots of times where we implement a feature, we think it's solid and nothing can go wrong with it. Then we continue on the project, 4 or 5 more features later, the initial feature we implemented breaks. We have no idea which feature let alone a commit that broke the code. It would be really difficult to pin point the exact commit that breaks the code. Enter git bisect.
+
+Through git logs we can see that commit histories are linear and "sorted" in terms of sequence of changes.
+
+Git leverages binary search and user input to help identify bad commits through git bisect. Let's see how it works.
+
+In order to "bisect" our code. We start with a simple command:
+
+```
+$ git bisect start
+```
+
+This will enter our git environment into "BISECTING" mode. If at any point we want to leave, run `$ git bisect reset`.
+
+The next thing that bisect expects is 2 commit sha's. One sha where we know our code base is "correct" and another sha where we know our code base has a bug. Example:
+
+```
+$ git bisect good bc08081
+$ git bisect bad b6a0692
+```
+
+> The arguments to the following commands are git sha's of a commit history. If our bad commit is at the HEAD, then we can run $ git bisect bad without an argument.
+
+It'll start at the midway point. It will checkout to the commit that lies as close to the middle between the good and bad commits. It then expects a response between:
+
+- `$ git bisect good`
+- `$ git bisect bad`
+
+If we inspected our code and it's bug free, we would use the `good` command.
+
+If instead our code had a bug, we would use the `bad` command
+
+Depending on the choice we make, git will move the HEAD to the next mid point commit.
+
+If we choose `bad`, it will move HEAD to the midpoint commit in the first half
+
+If we choose `good`, it will move HEAD to the midpoint commit in the second half.
+
+Git repeats this until it identifies the first commit where the code went wrong. Unless we never tell it `bad`.
+
+This is yet another reason why small purposeful semantic commits can be really helpful for code maintainability. If we're writing code that needs to compile, this is a great reason to make sure to only commit code that compiles.
 
 ## The three trees of git
 
@@ -156,4 +200,123 @@ All three tree in this case would "reset" to the state of `HEAD~1` and that woul
 
 With all these dangerous things we can do in git, surely there must be some way for us to backtrack on disastrous commands. There is! Enter the reference log.
 
-The default expiration time for reflog entries is 90 days. So it's good to fix any immediate mistakes with the reference log, but certainly isn't going to be a possible solution if we've waited too long.
+The default expiration time for reflog entries is 90 days. So it's good to fix any immediate mistakes with the reference log, but certainly isn't going to be a possible solution if we've waited too long. It also is local to a developers machine.
+
+References, the namesake of reflog more commonly known as branches, point to a commit. Quite literally, there is a file with the branch's name in the .git directory that has a commit sha of the the commit it is pointing to.
+
+Git tracks these branches in a place that isn't ... the branches. It's the `reflog`. We can think of the `reflog` as a chronological history of everything we've done in our local repo. Reference logs record when the tips of branches and other references were updated in the local repository. Reflogs are useful in various Git commands, to specify the value of a reference for a commit that isn't able to be accessed through git log.
+
+The most generic reflog is simply:
+
+```
+$ git reflog
+```
+
+What we'll see is the default reference log for the `HEAD`. Any change `HEAD` makes, `reflog` will list it out. Each line contains:
+
+- abbreviated commit sha
+- a git revision
+- action type(eg. commit, reset, checkout, etc.)
+- commit message or description
+
+## Git revert
+
+Another way to "change history" is by not changing a commit but instead adding a new commit using `git revert`. `git revert` takes a specified commit and rolls back the changes made from that commit. Then has us stage changes to continue the revert. git revert simply creates a new commit that is the opposite of an existing commit.:
+
+```
+$ git revert <some-git-sha>
+
+# might look something like this:
+$ git revert 67f68c
+```
+
+You'll likely have some conflicts that you'll have to parse through, stage them and then continue with:
+
+```
+$ git add <files to be staged>
+$ git revert --continue
+```
+
+> don't commit the changes!
+
+Eventually once all the conflicts are complete your default text editor will load to provide one or more commit messages.
+
+## Git merge
+
+When working with teams on a project, there will often be times where we need to pull changes from a remote repository. We have two main ways to integrate changes from the upstream. 
+
+One is `git merge`.
+
+```
+$ git merge feature-branch
+```
+
+This command would merge `feature-branch` into `HEAD` resulting in a net new commit.
+
+If each of the branches being merge change the same lines in the same file, this will result in a merge conflict. Resolve the conflict then stage and commit the changes to complete the merge
+
+## Git rebase
+
+Similar to when we merge, `git rebase` is another way we can grab changes from the upstream. Merge is always a forward moving change record, an additional commit. Alternatively, rebase "rewrites" history. `git rebase` reapplies commits on top of another base tip.
+
+`git rebase` finds the common ancestor between the branch that we want to rebase and the branch we're rebasing on to. It then "removes" the commits of the rebasing branch until that common ancestor. Then it moves the branch's(the one that's rebasing) tip to the tip of the branch we are rebasing on to. Then it reapplies the same commits that were removed on that new tip.
+
+> The reapplied commits are actually brand new commits with different pointers (git sha's).
+
+To rebase, simply run:
+
+```
+$ git rebase <branch-rebasing-onto> <branch-being-rebased>
+
+# OR if you are on the branch that you want to rebase on a new tip
+$ git rebase <branch-rebasing-onto>
+```
+
+If it goes smoothly, we won't even have to do anything. All our changes will be intact on the new base and we can continue to work. If it doesn't go smoothly ...
+
+#### Merge conflicts during a rebase
+
+Just like with merges, git's rebase doesn't know what to do if the two branches edit the same line in the same file. It will create a merge conflict in a rebase as well.
+
+We'll fix the conflict like we normally would in a merge.
+
+Stage the changes of that merge,
+
+but DO NOT commit. Instead:
+
+```
+$ git rebase --continue
+```
+
+If at any point we want to opt out of the rebase entirely, we can always run:
+
+```
+$ git rebase --abort
+```
+
+We'll have to do this for potentially every commit that is being replayed.
+
+Throughout this whole process, we have never made a commit documenting that we were integrating changes from the upstream. It is as if we had written off of this new base the whole time. Rebasing reduces the noise of merge commits in your git history.
+
+As nice as rebasing is, there are some serious dangers to it. Remember, we are rewriting history. Any time we rewrite history, we should be cautious.
+
+The golden rule of rebasing is:
+
+<strong>Don't rebase shared or public branches</strong>
+
+## Merge vs Rebase
+
+So, which is better? Depends on who we ask. There are many differing opinions on this. One perspective is that the repository's commit history is a record of what actually happened. That is to say, if we are grabbing changes from upstream(pulling), version control should know about this merge happening and document it always.
+
+Another perspective is that we want to catalog code changes not meta data about how we are versioning.
+
+If we find ourselves asking if we should be rebasing or merging, the answer lies in understanding how rebasing and merging effect git history and then determining a course of action.
+
+In general the way to get the best of both worlds is to rebase local changes we’ve made but haven’t shared yet before we push them in order to clean up history. Then merge in rebased feature branches into our master branch or whichever branch is our "clean" one.
+
+## Communication
+
+One of the most important tools in git team workflows is not any one command or git interface. It is communication. There aren't any tools or commands that can reduce the amount of merge conflicts. The only thing that can help on that end is good team communication.
+
+If we can have conversations with our team members about which features are being implemented or refactored, we can reduce the amount and complexity of merge conflicts.
+
