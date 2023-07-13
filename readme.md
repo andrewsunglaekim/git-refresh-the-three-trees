@@ -9,7 +9,7 @@
 - use `git reset` to reset git history
 - use `git reflog` to access reference logs to undo terrible things
 - use `git revert` to "revert" a commit
-- identify `git merge` creates a merge commit
+- use `git merge` to create a merge commit
 - use `git rebase` to rewrite history onto a new branch's tip
 - identify pros and cons of rebase vs merge
 - prioritizing communication and git workflows on teams
@@ -321,3 +321,6 @@ One of the most important tools in git team workflows is not any one command or 
 
 If we can have conversations with our team members about which features are being implemented or refactored, we can reduce the amount and complexity of merge conflicts.
 
+## Closing
+
+The git rabbit hole is pretty deep if you want to go down that road, but this brief synopsis gives you most of what you need on a day to day basis for things beyond just staging and commiting. Familiarizing ourselves with the mechanics and internals of how git is doing things serves to dispel fear and harness git's full potential.
